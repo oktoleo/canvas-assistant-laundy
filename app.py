@@ -3,15 +3,31 @@ import google.generativeai as genai
 from serpapi import GoogleSearch
 import time
 
+# --- Oktoleo Studio © 2026 ---
+
+
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(
-    page_title="Canvas Assistant : Laundry",
+    page_title="Laundry AI Canvass Assistant",
     page_icon="🧼",
     layout="centered"
 )
 
-# --- 2. SETUP API KEYS (DIAMBIL DARI RAHASIA SISTEM) ---
-# Nanti kita setting ini di langkah terakhir (Streamlit Cloud)
+# --- 2. CSS HACK (UI BERSIH) ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            .stDeployButton {display:none;}
+            [data-testid="stToolbar"] {visibility: hidden !important;}
+            /* Hilangkan padding berlebih di expander */
+            .streamlit-expanderHeader {font-size: 14px; font-weight: bold; color: #2196F3;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# --- 3. SETUP API KEYS ---
 try:
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -20,7 +36,7 @@ try:
 except:
     pass
 
-# --- 3. SESSION STATE (MEMORI SEMENTARA) ---
+# --- 4. SESSION STATE ---
 if 'data_cache' not in st.session_state:
     st.session_state.data_cache = []
 if 'current_index' not in st.session_state:
@@ -28,31 +44,26 @@ if 'current_index' not in st.session_state:
 if 'analysed_batches' not in st.session_state:
     st.session_state.analysed_batches = {}
 
-# --- 4. FUNGSI LOGIKA ---
+# --- 5. FUNGSI LOGIKA ---
 
 def cari_google_maps(lokasi):
     api_key = st.secrets.get("SERPAPI_KEY", "")
     if not api_key: return []
-    
     try:
         params = {
           "engine": "google_maps", "q": f"Laundry di {lokasi}",
           "type": "search", "api_key": api_key, "hl": "id"
         }
         search = GoogleSearch(params)
-        results = search.get_dict().get("local_results", [])
-        return results
-    except Exception as e:
-        st.error(f"Gagal mencari: {e}")
+        return search.get_dict().get("local_results", [])
+    except:
         return []
 
 def analisa_borongan_silent(data_batch, status):
-    # Cek apakah batch ini sudah pernah dianalisa sebelumnya? (Hemat Kuota)
     batch_id = f"{data_batch[0].get('title')}-{len(data_batch)}"
     if batch_id in st.session_state.analysed_batches:
         return st.session_state.analysed_batches[batch_id]
 
-    # Rakit Prompt
     prompt_text = "Role: Sales Sabun.\nTugas: Analisa laundry berikut.\nDATA:\n"
     for i, item in enumerate(data_batch):
         nama = item.get("title", "No Name")
@@ -66,7 +77,6 @@ def analisa_borongan_silent(data_batch, status):
     Format Jawab: ID_0 | [KODE] | [SCRIPT]
     """
 
-    # Cari Model
     candidates = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-pro']
     response_text = ""
     for model_name in candidates:
@@ -80,7 +90,6 @@ def analisa_borongan_silent(data_batch, status):
 
     if not response_text: return {}
 
-    # Parsing
     hasil = {}
     for line in response_text.split('\n'):
         if "|" in line and "ID_" in line:
@@ -96,23 +105,31 @@ def analisa_borongan_silent(data_batch, status):
             except:
                 continue
     
-    # Simpan ke memori biar gak request ulang kalau klik Next/Back
     st.session_state.analysed_batches[batch_id] = hasil
     return hasil
 
-# --- 5. TAMPILAN UTAMA (UI) ---
+# --- 6. TAMPILAN UTAMA (HEADER BARU) ---
 
 st.title("🧼 LaundryCanvass Pro")
-st.markdown("Aplikasi Sales Intelijen berbasis AI.")
 
-# Input Area
+# === UPDATE DESKRIPSI DISINI ===
+st.markdown("""
+<div style="margin-top: -15px; margin-bottom: 20px;">
+    <b>Aplikasi Sales Intelijen Berbasis AI</b>
+    <br>
+    <span style="font-size: 14px; color: #555;">
+    Secepat kilat mencari prospek baru dengan menarik data realtime dari Google Maps ⚡
+    </span>
+</div>
+""", unsafe_allow_html=True)
+# ===============================
+
 col1, col2 = st.columns([3, 1])
 with col1:
-    lokasi_input = st.text_input("Area Target", placeholder="Contoh: Tebet, Jakarta")
+    lokasi_input = st.text_input("Area Target", placeholder="Contoh: Tebet")
 with col2:
     status_mode = st.selectbox("Mode", ["GRATIS", "PRO"])
 
-# Tombol Scan
 if st.button("🚀 SCAN SEKARANG", use_container_width=True):
     if not lokasi_input:
         st.warning("Mohon isi lokasi dulu.")
@@ -122,14 +139,13 @@ if st.button("🚀 SCAN SEKARANG", use_container_width=True):
             if hasil_search:
                 st.session_state.data_cache = hasil_search
                 st.session_state.current_index = 0
-                st.session_state.analysed_batches = {} # Reset analisa lama
+                st.session_state.analysed_batches = {}
                 st.success(f"Ditemukan {len(hasil_search)} Laundry!")
                 time.sleep(1)
-                st.rerun() # Refresh halaman
+                st.rerun()
             else:
                 st.error("Data tidak ditemukan atau limit habis.")
 
-# Tampilan Hasil (Cards)
 if st.session_state.data_cache:
     start = st.session_state.current_index
     end = start + 5
@@ -138,20 +154,17 @@ if st.session_state.data_cache:
     if batch:
         st.write(f"Menampilkan data {start+1} - {min(end, len(st.session_state.data_cache))}")
         
-        # Analisa AI (Hanya jika belum dianalisa)
         with st.spinner("🤖 AI sedang menganalisa profil bisnis..."):
             analisa = analisa_borongan_silent(batch, status_mode)
         
-        # Render Kartu
         for i, item in enumerate(batch):
             info = analisa.get(i, {"hidden": False, "script": "Gagal analisa."})
             nama = item.get("title", "Laundry")
             alamat = item.get("address", "-")
             rating = item.get("rating", "")
             
-            # CSS Styling untuk Kartu
             if info['script'] == "BLOCKED":
-                # Hidden Gem Style
+                # === CARD HIDDEN GEM (KUNING) ===
                 st.markdown(f"""
                 <div style="background-color: #fff3cd; padding: 15px; border-radius: 10px; border: 1px solid #ffeeba; margin-bottom: 10px;">
                     <div style="font-weight: bold; font-size: 18px;">🔒 {nama} <span style="font-size:14px">⭐{rating}</span></div>
@@ -165,17 +178,15 @@ if st.session_state.data_cache:
                 </div>
                 """, unsafe_allow_html=True)
             else:
-                # Normal Style
+                # === CARD NORMAL (BIRU) ===
                 is_hidden = info['hidden']
                 bg_color = "#e3f2fd" if is_hidden else "#ffffff"
                 border_color = "#2196F3" if is_hidden else "#ddd"
                 icon = "💎" if is_hidden else "🏠"
                 
-                # Kita pakai st.text_area agar mudah dicopy di HP
-                copy_content = f"🏢 *{nama}*\n📍 {alamat}\n\n💬 *Script WA:*\n{info['script']}"
-                
+                # Render Kartu Utama
                 st.markdown(f"""
-                <div style="background-color: {bg_color}; padding: 15px; border-radius: 10px; border: 1px solid {border_color}; margin-bottom: 10px;">
+                <div style="background-color: {bg_color}; padding: 15px; border-radius: 10px; border: 1px solid {border_color}; margin-bottom: 5px;">
                     <div style="font-weight: bold; font-size: 16px;">{start+i+1}. {icon} {nama} <span style="font-size:14px">⭐{rating}</span></div>
                     <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📍 {alamat}</div>
                     <div style="background: #fff; padding: 8px; border: 1px dashed #999; font-family: monospace; font-size: 13px;">
@@ -184,10 +195,12 @@ if st.session_state.data_cache:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Fitur Copy Native Streamlit
-                st.code(copy_content, language="markdown")
+                # FITUR COPY (DILIPAT)
+                copy_content = f"🏢 *{nama}*\n📍 {alamat}\n\n💬 *Script WA:*\n{info['script']}"
+                
+                with st.expander("📋 Klik Untuk Salin Data Lengkap"):
+                    st.code(copy_content, language="markdown")
 
-    # Tombol Navigasi
     col_prev, col_next = st.columns(2)
     with col_prev:
         if start > 0:
