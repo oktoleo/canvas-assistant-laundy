@@ -12,7 +12,7 @@ KODE_RAHASIA = "CUAN2025"
 
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(
-    page_title="Laundry AI Assistant",
+    page_title="Laundry Sales Assistant",
     page_icon="🧼",
     layout="centered"
 )
@@ -139,17 +139,18 @@ if st.session_state.user_status == "PRO":
     LIMIT_DATA = 30
     INFO_RADIUS = "10 KM"
     # Menggunakan \n untuk pindah baris
-    st.info(f"💎 **Status: MEMBER PRO**\n📡 Radius: **{INFO_RADIUS}** (Max 30 Data)")
+    st.info(f"💎 **Status: MEMBER PRO**  \n📡 Radius: **{INFO_RADIUS}** (Max 30 Data)")
 else:
     LIMIT_DATA = 10
     INFO_RADIUS = "1 KM"
     # Menggunakan \n untuk pindah baris
-    st.warning(f"🔓 **Status: DEMO GRATIS**\n📡 Radius: **{INFO_RADIUS}** (Max 10 Data)")
+    st.warning(f"🔓 **Status: DEMO GRATIS**  \n📡 Radius: **{INFO_RADIUS}** (Max 10 Data)")
     st.caption("ℹ️ *Ingin jangkauan lebih luas? Klik menu 'Punya Kode Akses' di atas.*")
 
 st.markdown("""
 <div style="margin-top: 10px; margin-bottom: 20px;">
     <b>Cari Prospek Laundry Secepat Kilat</b>
+    <span style="font-size: 14px; color: #555;"><br>Otomatis menampilkan prospek dari data realtime Google Maps.</span>
     <span style="font-size: 14px; color: #555;"><br>Masukkan nama Kecamatan/Kelurahan target Anda.</span>
 </div>
 """, unsafe_allow_html=True)
