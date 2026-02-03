@@ -116,7 +116,7 @@ def analisa_borongan_silent(data_batch, status):
 
 # --- 6. TAMPILAN UTAMA ---
 
-st.title("🧼 Laundry AI")
+st.title("🧼 ASA for Laundry")
 
 # === LOGIN EXPANDER ===
 if st.session_state.user_status == "GRATIS":
@@ -145,12 +145,12 @@ else:
     INFO_RADIUS = "1 KM"
     # Menggunakan \n untuk pindah baris
     st.warning(f"🔓 **Status: DEMO GRATIS**  \n📡 Radius: **{INFO_RADIUS}** (Max 10 Data)")
-    st.caption("ℹ️ *Ingin jangkauan lebih luas? Klik menu 'Punya Kode Akses' di atas.*")
+    st.caption("ℹ️ *Klik menu 'Punya Kode Akses' untuk radius lebih luas.*")
 
 st.markdown("""
 <div style="margin-top: 10px; margin-bottom: 20px;">
     <b>Cari Prospek Laundry Secepat Kilat</b>
-    <span style="font-size: 14px; color: #555;"><br>Ambil otomatis data realtime Google Maps.</span>
+    <span style="font-size: 14px; color: #555;"><br>Asisten AI akan mengambil data realtime Google Maps.</span>
     <span style="font-size: 14px; color: #555;"><br>Masukkan nama Kecamatan/Kelurahan target Anda.</span>
 </div>
 """, unsafe_allow_html=True)
