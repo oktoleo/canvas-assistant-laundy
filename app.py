@@ -150,7 +150,7 @@ else:
 st.markdown("""
 <div style="margin-top: 10px; margin-bottom: 20px;">
     <b>Cari Prospek Laundry Secepat Kilat</b>
-    <span style="font-size: 14px; color: #555;"><br>Otomatis menampilkan prospek dari data realtime Google Maps.</span>
+    <span style="font-size: 14px; color: #555;"><br>Ambil otomatis data realtime Google Maps.</span>
     <span style="font-size: 14px; color: #555;"><br>Masukkan nama Kecamatan/Kelurahan target Anda.</span>
 </div>
 """, unsafe_allow_html=True)
