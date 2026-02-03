@@ -5,10 +5,9 @@ import time
 import re
 
 # ==========================================
-# 🔐 PENGATURAN KEAMANAN (PASSWORD)
+# 🔐 PENGATURAN KEAMANAN
 # ==========================================
-# User harus memasukkan kode ini untuk jadi PRO
-KODE_RAHASIA = "oktoleo123" 
+KODE_RAHASIA = "CUAN2025" 
 # ==========================================
 
 # --- 1. KONFIGURASI HALAMAN ---
@@ -27,11 +26,16 @@ hide_st_style = """
             .stDeployButton {display:none;}
             [data-testid="stToolbar"] {visibility: hidden !important;}
             .streamlit-expanderHeader {font-size: 14px; font-weight: bold; color: #2196F3;}
+            input.st-bd {border: 1px solid #aaa;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# --- 3. SIDEBAR LOGIN (PENENTU STATUS) ---
+# --- 3. LOGIKA STATUS & LIMIT DATA (UPDATE DISINI) ---
+STATUS_SUBSCRIPTION = "GRATIS"
+LIMIT_DATA = 10  # Default Gratis: 10 Data (Radius ~1 KM)
+INFO_RADIUS = "1 KM"
+
 with st.sidebar:
     st.header("🔐 Akses Member")
     input_kode = st.text_input("Masukkan Kode Akses:", type="password")
@@ -39,10 +43,11 @@ with st.sidebar:
     if input_kode == KODE_RAHASIA:
         st.success("✅ Mode PRO Aktif")
         STATUS_SUBSCRIPTION = "PRO"
+        LIMIT_DATA = 30  # Mode Pro: 30 Data (Radius ~10 KM)
+        INFO_RADIUS = "10 KM"
     else:
         st.info("Mode Demo (Gratis)")
-        STATUS_SUBSCRIPTION = "GRATIS"
-        st.caption("Masukkan kode untuk membuka fitur Hidden Gem.")
+        st.caption("Masukkan kode untuk membuka Radius 10 KM (30 Data).")
 
 # --- 4. SETUP API KEYS ---
 try:
@@ -63,7 +68,7 @@ if 'analysed_batches' not in st.session_state:
 
 # --- 6. FUNGSI LOGIKA ---
 
-def cari_google_maps(lokasi):
+def cari_google_maps(lokasi, limit):
     api_key = st.secrets.get("SERPAPI_KEY", "")
     if not api_key: return []
     try:
@@ -72,16 +77,15 @@ def cari_google_maps(lokasi):
           "type": "search", "api_key": api_key, "hl": "id"
         }
         search = GoogleSearch(params)
-        return search.get_dict().get("local_results", [])
+        raw_results = search.get_dict().get("local_results", [])
+        # Potong data sesuai limit (10 atau 30)
+        return raw_results[:limit]
     except:
         return []
 
 def analisa_borongan_silent(data_batch, status):
     batch_id = f"{data_batch[0].get('title')}-{len(data_batch)}"
     if batch_id in st.session_state.analysed_batches:
-        # Cek apakah status berubah? (Misal dari Gratis login ke Pro)
-        # Kalau sebelumnya Gratis dan sekarang Pro, kita harus re-analisa bagian BLOCKED
-        # Tapi untuk simpelnya, kita return cache dulu.
         return st.session_state.analysed_batches[batch_id]
 
     prompt_text = "Role: Sales Sabun.\nTugas: Analisa laundry berikut.\nDATA:\n"
@@ -121,53 +125,62 @@ def analisa_borongan_silent(data_batch, status):
                         script = parts[2].strip()
                         
                         is_hidden = "GANG" in kode
-                        # Logic Status dipindah ke Render agar dinamis saat login
                         hasil[idx] = {"hidden": is_hidden, "script": script}
                 except:
                     continue
-    
     st.session_state.analysed_batches[batch_id] = hasil
     return hasil
 
 # --- 7. TAMPILAN UTAMA ---
 
-st.title("🧼 Laundry Canvas Assitant")
+st.title("🧼 LaundryCanvass AI")
+
+# === INFO BAR (UPDATED TEXT) ===
+if STATUS_SUBSCRIPTION == "PRO":
+    st.info(f"💎 **Status: MEMBER PRO** | 📡 Radius: **{INFO_RADIUS}** (Max 30 Data)")
+else:
+    st.warning(f"🔓 **Status: DEMO GRATIS** | 📡 Radius: **{INFO_RADIUS}** (Max 10 Data)")
+    st.caption("ℹ️ *Mode Gratis terbatas pada 10 laundry terdekat.*")
+
 st.markdown("""
-<div style="margin-top: -15px; margin-bottom: 20px;">
-    <b>Aplikasi Sales Intelijen Berbasis AI</b><br>
-    <span style="font-size: 14px; color: #555;">Secepat kilat mencari prospek baru dengan menarik data realtime dari Google Maps ⚡</span>
+<div style="margin-top: 10px; margin-bottom: 20px;">
+    <b>Cari Prospek Laundry Otomatis</b>
+    <span style="font-size: 14px; color: #555;"><br>Masukkan nama Kecamatan/Kelurahan target Anda.</span>
 </div>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns([4, 1])
-with col1:
-    lokasi_input = st.text_input("Area Target", placeholder="Ketik Nama Kecamatan...", label_visibility="collapsed")
-with col2:
-    tombol_scan = st.button("🚀 SCAN", use_container_width=True)
+# INPUT UI
+lokasi_input = st.text_input("📍 Lokasi Target:", placeholder="Contoh: Tebet, Jakarta Selatan")
+tombol_scan = st.button("🚀 SCAN SEKARANG", use_container_width=True, type="primary")
 
 if tombol_scan:
     if not lokasi_input:
-        st.warning("Mohon isi lokasi dulu.")
+        st.error("⚠️ Mohon ketik lokasi dulu.")
     else:
-        with st.spinner(f"📡 Menghubungi satelit mencari laundry di {lokasi_input}..."):
-            hasil_search = cari_google_maps(lokasi_input)
+        with st.spinner(f"📡 Scanning radius {INFO_RADIUS} ({LIMIT_DATA} Data) di area {lokasi_input}..."):
+            hasil_search = cari_google_maps(lokasi_input, LIMIT_DATA)
+            
             if hasil_search:
                 st.session_state.data_cache = hasil_search
                 st.session_state.current_index = 0
                 st.session_state.analysed_batches = {}
-                st.success(f"Ditemukan {len(hasil_search)} Laundry!")
+                st.success(f"✅ Ditemukan {len(hasil_search)} Laundry")
                 time.sleep(1)
                 st.rerun()
             else:
-                st.error("Data tidak ditemukan.")
+                st.error("❌ Data tidak ditemukan. Coba nama lokasi lain.")
 
+# RENDER DATA & PAGINATION
 if st.session_state.data_cache:
+    # Logic Pagination: Tampilkan 5 per halaman
     start = st.session_state.current_index
-    end = start + 5
+    end = start + 5 
     batch = st.session_state.data_cache[start:end]
     
     if batch:
-        st.write(f"Menampilkan data {start+1} - {min(end, len(st.session_state.data_cache))}")
+        # Info Halaman
+        total_data = len(st.session_state.data_cache)
+        st.write(f"Menampilkan urutan {start+1} - {min(end, total_data)} dari total {total_data} data")
         
         with st.spinner("🤖 AI sedang menganalisa profil bisnis..."):
             analisa = analisa_borongan_silent(batch, STATUS_SUBSCRIPTION)
@@ -181,7 +194,6 @@ if st.session_state.data_cache:
             alamat = item.get("address", "-")
             rating = item.get("rating", "")
             
-            # LOGIKA KUNCI DISINI (DINAMIS BERDASARKAN LOGIN)
             is_blocked = False
             final_script = info['script']
             
