@@ -116,7 +116,7 @@ def analisa_borongan_silent(data_batch, status):
 
 # --- 6. TAMPILAN UTAMA ---
 
-st.title("🧼 ASA for Laundry")
+st.title("🧼 ASA : Laundry")
 
 # === LOGIN EXPANDER ===
 if st.session_state.user_status == "GRATIS":
